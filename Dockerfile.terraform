@@ -30,10 +30,26 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH"; exit 1; \
     fi && \
-    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz && \
+    curl --connect-timeout 60 -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz && \
     tar -xf google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz -C /usr/local/ && \
     rm google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz && \
-    /usr/local/google-cloud-sdk/install.sh --quiet --usage-reporting=false --path-update=false
+    /usr/local/google-cloud-sdk/install.sh --quiet --usage-reporting=false --path-update=false && \
+    /usr/local/google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 ENV PATH=/usr/local/google-cloud-sdk/bin:$PATH
+
+# k9s
+# https://github.com/derailed/k9s/releases
+ARG K9S_VERSION=v0.50.18
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        K9S_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        K9S_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH"; exit 1; \
+    fi && \
+    curl --connect-timeout 60 -fsSL -o k9s.tar.gz https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_${K9S_ARCH}.tar.gz && \
+    tar -xzf k9s.tar.gz -C /usr/local/bin/ k9s && \
+    rm k9s.tar.gz
 
 WORKDIR /app
