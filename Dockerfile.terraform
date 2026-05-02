@@ -1,0 +1,39 @@
+FROM docker:28.5.0-alpine3.22
+
+RUN apk add --no-cache bash vim openvpn wget unzip curl sshpass openssh-client python3 py3-pip git github-cli jq groff mandoc libc6-compat aws-cli
+
+# https://stackoverflow.com/a/77334728/3899136
+RUN echo "[global]" >> /etc/pip.conf && echo "break-system-packages = true" >> /etc/pip.conf
+
+# Latest Terraform version
+# https://github.com/hashicorp/terraform/releases
+ARG TERRAFORM_VERSION=1.15.1
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        TERRAFORM_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        TERRAFORM_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH"; exit 1; \
+    fi && \
+    wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TERRAFORM_ARCH}.zip && \
+    unzip terraform_${TERRAFORM_VERSION}_linux_${TERRAFORM_ARCH}.zip -d /usr/local/bin/ && \
+    rm terraform_${TERRAFORM_VERSION}_linux_${TERRAFORM_ARCH}.zip
+
+# Google Cloud CLI
+# https://cloud.google.com/sdk/docs/install-sdk
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        GCLOUD_ARCH="x86_64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        GCLOUD_ARCH="arm"; \
+    else \
+        echo "Unsupported architecture: $ARCH"; exit 1; \
+    fi && \
+    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz && \
+    tar -xf google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz -C /usr/local/ && \
+    rm google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz && \
+    /usr/local/google-cloud-sdk/install.sh --quiet --usage-reporting=false --path-update=false
+ENV PATH=/usr/local/google-cloud-sdk/bin:$PATH
+
+WORKDIR /app
